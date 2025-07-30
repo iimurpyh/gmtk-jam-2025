@@ -19,7 +19,7 @@ player.rect.x = SCREEN_SIZE[0] / 2 + player.rect.width/2
 player.rect.y = SCREEN_SIZE[1] / 2 + player.rect.height/2
 
 
-projectile = objects.Projectile(400,150,(400,400))
+boss = objects.Boss((450,450))
 
 def draw_tilemap():
     background_surface.fill((255, 255, 255))

@@ -24,9 +24,12 @@ class GameObject(pygame.sprite.Sprite):
     def update(self, dt):
         pass
 
+    def delete(self):
+        GameObject.gameObjects.remove(self)
+
 class Boss(GameObject):
 
-    def __init__(self):
+    def __init__(self, spawnPos):
 
         
         super().__init__()
@@ -34,16 +37,35 @@ class Boss(GameObject):
         self.image = pygame.Surface([100,100])
         self.image.fill(RED)
 
-        self.rect = pygame.image.get_rect()
+        self.rect = self.image.get_rect()
 
+        self.rect.x = spawnPos[0]
+        self.rect.y = spawnPos[1]
+
+        self.lastAttackTime = 0
+        
 
         self.xVel = 0
         self.yVel = 0
 
-    #def circularProjectileAttack(self, qty, projectile):
+    def circularProjectileAttack(self, qty, magnitude, spawnDist):
+        for i in range(qty):
+            projectile_angle = (360/qty) * i
+            projectile_angle_radians = projectile_angle * (math.pi/180)
+            spawnPosX = self.rect.x + spawnDist * math.sin(projectile_angle_radians)
+            spawnPosY = self.rect.y + spawnDist * math.cos(projectile_angle_radians)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), False)
+
+    def update(self, dt):
+        if (pygame.time.get_ticks() - self.lastAttackTime) > 5000:
+            self.circularProjectileAttack(5, 300, 20)
+            self.lastAttackTime = pygame.time.get_ticks()
+
+
+            
 
 class Projectile(GameObject):
-    def __init__(self, magnitude, direction, pos):
+    def __init__(self, magnitude, direction, pos, isBouncy):
 
         super().__init__()
 
@@ -55,6 +77,7 @@ class Projectile(GameObject):
         self.rect.x = pos[0]
         self.rect.y = pos[1]
 
+        self.isBouncy = isBouncy
         
 
         self.directionRadians = direction * (math.pi / 180.0)
@@ -64,6 +87,10 @@ class Projectile(GameObject):
     def update(self, dt):
         self.rect.x += self.xVel * dt
         self.rect.y += self.yVel * dt
+
+        if self.isTouchingWall() and not self.isBouncy:
+            self.delete()
+            
 
 
 class Player(GameObject):
