@@ -52,17 +52,10 @@ class Boss(GameObject):
         self.xVel = 0
         self.yVel = 0
 
-    def circularProjectileAttack(self, qty, magnitude, spawnDist):
-        for i in range(qty):
-            projectile_angle = (360/qty) * i
-            projectile_angle_radians = projectile_angle * (math.pi/180)
-            spawnPosX = self.rect.x + spawnDist * math.sin(projectile_angle_radians)
-            spawnPosY = self.rect.y + spawnDist * math.cos(projectile_angle_radians)
-            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), True)
 
     def update(self, dt):
         if (pygame.time.get_ticks() - self.lastAttackTime) > 5000:
-            self.circularProjectileAttack(5, 300, 20)
+            Projectile.circularProjectileAttack(5, 300, 20, (self.rect.x, self.rect.y))
             self.lastAttackTime = pygame.time.get_ticks()
 
 
@@ -95,6 +88,8 @@ class Projectile(GameObject):
         if self.isTouchingWall():
             if not self.isBouncy:
                 self.delete()
+                
+            #Kinda hacky but oh well
             if self.isBouncy:
                 if self.rect.y > ARENA_BOTTOM:
                     self.yVel *= -1
@@ -108,6 +103,14 @@ class Projectile(GameObject):
                 if self.rect.x > ARENA_RIGHT:
                     self.xVel *= -1
                     self.rect.x = ARENA_RIGHT-1
+    
+    def circularProjectileAttack(qty, magnitude, spawnDist, origin):
+        for i in range(qty):
+            projectile_angle = (360/qty) * i
+            projectile_angle_radians = projectile_angle * (math.pi/180)
+            spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
+            spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), True)
         
             
 
