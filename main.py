@@ -1,16 +1,13 @@
 import pygame
 import pytmx
-import pytmx.util_pygame
-import src.objects as objects
 from pygame.locals import *
+pygame.init()
 
 SCREEN_SIZE = (900, 900)
-
-pygame.init()
 screen = pygame.display.set_mode(SCREEN_SIZE)
 clock = pygame.time.Clock()
-
-tilemap = pytmx.util_pygame.load_pygame("assets/arena_chicken.tmx")
+from src.tilemap import tilemap
+import src.objects as objects
 
 game_surface = pygame.Surface((SCREEN_SIZE[0]*2, SCREEN_SIZE[1]*2))
 background_surface = pygame.Surface((tilemap.width * tilemap.tilewidth, tilemap.height * tilemap.tileheight))

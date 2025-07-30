@@ -1,13 +1,18 @@
 import pygame
 import math
 from pygame.locals import *
-#import src.utils as utils
-
+import src.utils as utils
+import pytmx
+from pygame.locals import *
+from src.tilemap import tilemap, collisionRects
 
 RED = (255,0,0)
 
 class GameObject(pygame.sprite.Sprite):
     gameObjects = []
+
+    def isTouchingWall(self):
+        return self.rect.collidelist(collisionRects) != -1
 
     def __init__(self):
         super().__init__()
@@ -60,6 +65,7 @@ class Projectile(GameObject):
         self.rect.x += self.xVel * dt
         self.rect.y += self.yVel * dt
 
+
 class Player(GameObject):
     SPEED = 400
 
@@ -70,9 +76,6 @@ class Player(GameObject):
         self.yv = 0
 
     def update(self, dt):
-        self.rect.x += self.xv * dt
-        self.rect.y += self.yv * dt
-        
         keys = pygame.key.get_pressed()
 
         if keys[K_UP]:
@@ -88,3 +91,13 @@ class Player(GameObject):
             self.xv = Player.SPEED
         else:
             self.xv = 0
+        
+        self.rect.x += self.xv * dt
+        if self.isTouchingWall():
+            self.rect.x -= self.xv * dt
+            self.xv = 0
+            
+        self.rect.y += self.yv * dt
+        if self.isTouchingWall():
+            self.rect.y -= self.yv * dt
+            self.yv = 0
