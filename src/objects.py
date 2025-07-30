@@ -5,9 +5,6 @@ import src.utils as utils
 class GameObject(pygame.sprite.Sprite):
     gameObjects = []
 
-    def isTouchingWall():
-        
-
     def __init__(self):
         super().__init__()
         GameObject.gameObjects.append(self)

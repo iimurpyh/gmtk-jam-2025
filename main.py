@@ -12,6 +12,7 @@ clock = pygame.time.Clock()
 
 tilemap = pytmx.util_pygame.load_pygame("assets/arena_chicken.tmx")
 
+game_surface = pygame.Surface((SCREEN_SIZE[0]*2, SCREEN_SIZE[1]*2))
 background_surface = pygame.Surface((tilemap.width * tilemap.tilewidth, tilemap.height * tilemap.tileheight))
 
 FPS = 60
@@ -44,12 +45,16 @@ def startGame():
         
         draw_tilemap()
 
-        camera_position = (-player.rect.x + SCREEN_SIZE[0]/2 - player.rect.width/2, -player.rect.y + SCREEN_SIZE[1]/2 - player.rect.height/2)
+        game_surface.fill((255, 255, 255))
 
-        screen.blit(background_surface, camera_position)
+        camera_position = (-player.rect.x + SCREEN_SIZE[0] - player.rect.width, -player.rect.y + SCREEN_SIZE[1] - player.rect.height)
+
+        game_surface.blit(background_surface, camera_position)
 
         for sprite in objects.GameObject.gameObjects:
-            sprite.draw(screen, camera_position)
+            sprite.draw(game_surface, camera_position)
+        
+        pygame.transform.scale(game_surface, SCREEN_SIZE, screen)
 
         pygame.display.update()
 
