@@ -7,6 +7,10 @@ from pygame.locals import *
 from src.tilemap import tilemap, collisionRects
 
 RED = (255,0,0)
+ARENA_TOP = 120
+ARENA_BOTTOM = 1100
+ARENA_LEFT = 130
+ARENA_RIGHT = 1400
 
 class GameObject(pygame.sprite.Sprite):
     gameObjects = []
@@ -54,7 +58,7 @@ class Boss(GameObject):
             projectile_angle_radians = projectile_angle * (math.pi/180)
             spawnPosX = self.rect.x + spawnDist * math.sin(projectile_angle_radians)
             spawnPosY = self.rect.y + spawnDist * math.cos(projectile_angle_radians)
-            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), False)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), True)
 
     def update(self, dt):
         if (pygame.time.get_ticks() - self.lastAttackTime) > 5000:
@@ -88,8 +92,23 @@ class Projectile(GameObject):
         self.rect.x += self.xVel * dt
         self.rect.y += self.yVel * dt
 
-        if self.isTouchingWall() and not self.isBouncy:
-            self.delete()
+        if self.isTouchingWall():
+            if not self.isBouncy:
+                self.delete()
+            if self.isBouncy:
+                if self.rect.y > ARENA_BOTTOM:
+                    self.yVel *= -1
+                    self.rect.y = ARENA_BOTTOM-1
+                if self.rect.y < ARENA_TOP:
+                    self.yVel *= -1
+                    self.rect.y = ARENA_TOP+1
+                if self.rect.x < ARENA_LEFT:
+                    self.xVel *= -1
+                    self.rect.x = ARENA_LEFT+1
+                if self.rect.x > ARENA_RIGHT:
+                    self.xVel *= -1
+                    self.rect.x = ARENA_RIGHT-1
+        
             
 
 
@@ -128,3 +147,6 @@ class Player(GameObject):
         if self.isTouchingWall():
             self.rect.y -= self.yv * dt
             self.yv = 0
+
+        print(self.rect.x)
+        print(self.rect.y)
