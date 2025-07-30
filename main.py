@@ -10,7 +10,7 @@ clock = pygame.time.Clock()
 
 tilemap = pytmx.util_pygame.load_pygame("assets/arena_chicken.tmx")
 
-background_surface = pygame.Surface(tilemap.width * tilemap.tilewidth, tilemap.height * tilemap.tileheight)
+background_surface = pygame.Surface((tilemap.width * tilemap.tilewidth, tilemap.height * tilemap.tileheight))
 
 FPS = 60
 
@@ -19,8 +19,9 @@ def draw_tilemap():
     for layer in tilemap.visible_layers:
         if isinstance(layer, pytmx.TiledTileLayer):
             for x, y, image in layer.tiles():
-                background_surface.blit(x, y, image)
+                background_surface.blit(image, (x * tilemap.tilewidth, y * tilemap.tileheight))
 
+running = True
 
 while running:
     dt = clock.tick(FPS) / 1000
@@ -30,9 +31,7 @@ while running:
     
     draw_tilemap()
 
-    screen.blit(background_surface)
-
-
-
+    screen.blit(background_surface, (0, 0))
+    pygame.display.update()
 
 pygame.quit()
