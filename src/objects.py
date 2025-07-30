@@ -1,6 +1,7 @@
 import pygame
 import math
 from pygame.locals import *
+#import src.utils as utils
 
 
 RED = (255,0,0)
@@ -9,6 +10,7 @@ class GameObject(pygame.sprite.Sprite):
     gameObjects = []
 
     def __init__(self):
+        super().__init__()
         GameObject.gameObjects.append(self)
     
     def draw(self, surface, camera_position):
