@@ -3,6 +3,7 @@ import math
 import os
 from pygame.locals import *
 import src.utils as utils
+import src.camera as camera
 import pytmx
 from pygame.locals import *
 from src.tilemap import tilemap, collisionRects
@@ -31,8 +32,9 @@ class GameObject(pygame.sprite.Sprite):
         self.flipped = False
         self.image_offset = (0, 0)
     
-    def draw(self, surface, camera_position):
-        drawRect = pygame.Rect(self.rect.x + camera_position[0], self.rect.y + camera_position[1], self.rect.width, self.rect.height)
+    def draw(self, surface):
+        drawPosition = camera.worldToScreenSpace(self.rect.x, self.rect.y)
+        drawRect = pygame.Rect(drawPosition[0], drawPosition[1], self.rect.width, self.rect.height)
         #pygame.draw.rect(surface, (0, 0, 0), drawRect)
         if self.image:
             flipped = pygame.transform.flip(self.image, self.flipped, False)
@@ -107,6 +109,36 @@ class Projectile(GameObject):
 
         if self.isTouchingWall() and not self.isBouncy:
             self.delete()
+            
+class ThrownLasso(GameObject):
+    def __init__(self, thrower, xVel, yVel, lastTime):
+        super().__init__()
+        self.rect = pygame.Rect(thrower.rect.x, thrower.rect.y, 48, 10)
+        self.image = pygame.image.load('assets/thrownLasso.png', 'thrownLasso')
+
+        self.xVel = xVel
+        self.yVel = yVel
+        self.thrower = thrower
+        self.lastTime = lastTime
+
+    def update(self, dt):
+        self.rect.x += self.xVel * dt
+        self.rect.y += self.yVel * dt
+        self.lastTime -= dt
+
+        if self.lastTime < 0:
+            self.xVel += (self.thrower.rect.x - self.rect.x) * (0.3 + self.lastTime * 0.01)
+            self.yVel += (self.thrower.rect.y - self.rect.y) * (0.3 + self.lastTime * 0.01)
+
+            if self.rect.colliderect(self.thrower.rect):
+                self.delete()
+                self.thrower.state = 'idle'
+            
+            pos = pygame.math.Vector2(self.rect.x, self.rect.y)
+            pos = pos.move_towards(pygame.math.Vector2(self.thrower.rect.x, self.thrower.rect.y), -self.lastTime*30)
+            self.rect.x = pos.x
+            self.rect.y = pos.y
+    
 
 class Player(GameObject):
     SPEED = 400
@@ -124,7 +156,7 @@ class Player(GameObject):
         
         self.image_offset = (-40, -70)
     
-    def handleMovement(self, dt):
+    def handle_movement(self, dt):
         keys = pygame.key.get_pressed()
 
         if keys[K_UP]:
@@ -155,7 +187,17 @@ class Player(GameObject):
             self.rect.y -= self.yVel * dt
             self.yVel = 0
     
-    def handleLassoState(self, dt):
+    def throw_lasso(self):
+        mouse_pos = pygame.mouse.get_pos()
+        throw_speed = pygame.math.Vector2(mouse_pos[0] - 450, mouse_pos[1] - 450)
+        throw_speed.scale_to_length(600 + (self.lassoCharge * 600))
+
+        ThrownLasso(self, throw_speed.x, throw_speed.y, self.lassoCharge/2)
+
+        self.lassoCharge = 0
+
+    
+    def handle_lasso(self, dt):
         if pygame.mouse.get_pressed()[0]:
             if self.state == 'idle':
                 self.state = 'chargeLasso'
@@ -164,25 +206,22 @@ class Player(GameObject):
                     self.lassoCharge += dt
         else:
             if self.state == 'chargeLasso':
+                self.throw_lasso()
                 self.state = 'throwLasso'
-                self.lassoCharge = 0
 
     def update(self, dt):
         self.image = self.imageStates[self.state]
         
-        self.handleMovement(dt)
-        self.handleLassoState(dt)
-
-        
+        self.handle_movement(dt)
+        self.handle_lasso(dt)
     
-    def draw(self, surface, camera_position):
-        start_pos = (self.rect.x + camera_position[0] + self.rect.width/2, self.rect.y + camera_position[1] + 40)
-        mouse_pos = pygame.mouse.get_pos()
-        translated = ((mouse_pos[0]*2) - start_pos[0], (mouse_pos[1]*2) - start_pos[1])
-        end_pos = (translated[0]*self.lassoCharge + start_pos[0], translated[1]*self.lassoCharge + start_pos[1])
-
-        if self.state == 'chargeLasso':
-            utils.draw_line_round_corners_polygon(surface, start_pos, end_pos, (255, 255, 255), 20)
+    def draw(self, surface):
+        if self.state == 'chargeLasso' and self.lassoCharge > 0:
+            start_pos = camera.worldToScreenSpace(self.rect.x + self.rect.width/2, self.rect.y + 40)
+            mouse_pos = camera.mouseToWorldSpace(pygame.mouse.get_pos())
+            end_pos = pygame.math.Vector2((mouse_pos[0] - start_pos[0]), (mouse_pos[1] - start_pos[1]))
+            end_pos.scale_to_length(self.lassoCharge * 500)
+            utils.draw_line_round_corners_polygon(surface, start_pos, (end_pos.x + start_pos[0], end_pos.y + start_pos[1]), (255, 255, 255), 20)
         
-        super().draw(surface, camera_position)
+        super().draw(surface)
         
