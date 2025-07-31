@@ -41,6 +41,8 @@ class Boss(GameObject):
         self.image = pygame.Surface([100,100])
         self.image.fill(RED)
 
+        self.health = 100
+
         self.rect = self.image.get_rect()
 
         self.rect.x = spawnPos[0]
@@ -52,15 +54,59 @@ class Boss(GameObject):
         self.xVel = 0
         self.yVel = 0
 
+    def getPlayer(self):
+        for object in GameObject.gameObjects:
+            if isinstance(object,Player):
+                return object
+            
+        return Player()
+
+
+
+class ChickenBoss(Boss):
+    def __init__(self, spawnPos):
+
+        super().__init__(spawnPos)
+
+        self.battleStage = 1
 
     def update(self, dt):
-        if (pygame.time.get_ticks() - self.lastAttackTime) > 5000:
-            Projectile.circularProjectileAttack(5, 300, 20, (self.rect.x, self.rect.y))
+        player = self.getPlayer()
+
+        playerDistX = player.getPos()[0] - self.rect.x
+        playerDistY = player.getPos()[1] - self.rect.y
+
+        playerAngle = math.atan2(playerDistX,playerDistY) * (180/math.pi)
+
+        if self.battleStage == 1:
+            self.battleStage1(playerAngle)
+        if self.battleStage == 2:
+            self.battleStage2(playerAngle)
+
+    def battleStage1(self, playerAngle):
+        if (pygame.time.get_ticks() - self.lastAttackTime) > 2000:
+            Projectile.circularProjectileAttack(5, 300, 20, self.rect, False, playerAngle)
+            self.lastAttackTime = pygame.time.get_ticks()
+            self.health -= 10
+            print(self.health)
+        
+        ''''
+        if hit by rope:
+            self.health -= 10
+            print(self.health)
+        '''''           
+
+        if self.health == 0:
+            self.battleStage += 1
+            print("1st stage complete")
+
+    def battleStage2(self, playerAngle):
+        if (pygame.time.get_ticks() - self.lastAttackTime) > 1000:
+            Projectile.circularProjectileAttack(10, 600, 100, (self.rect.x, self.rect.y), False, playerAngle)
             self.lastAttackTime = pygame.time.get_ticks()
 
 
-            
-
+        
 class Projectile(GameObject):
     def __init__(self, magnitude, direction, pos, isBouncy):
 
@@ -104,13 +150,13 @@ class Projectile(GameObject):
                     self.xVel *= -1
                     self.rect.x = ARENA_RIGHT-1
     
-    def circularProjectileAttack(qty, magnitude, spawnDist, origin):
+    def circularProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle):
         for i in range(qty):
-            projectile_angle = (360/qty) * i
+            projectile_angle = ((360/qty) * i) + initialAngle
             projectile_angle_radians = projectile_angle * (math.pi/180)
             spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
             spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
-            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), True)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy)
         
             
 
@@ -151,5 +197,5 @@ class Player(GameObject):
             self.rect.y -= self.yv * dt
             self.yv = 0
 
-        print(self.rect.x)
-        print(self.rect.y)
+    def getPos(self):
+        return (self.rect.x, self.rect.y)
