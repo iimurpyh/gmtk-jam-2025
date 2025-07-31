@@ -8,6 +8,7 @@ screen = pygame.display.set_mode(SCREEN_SIZE)
 clock = pygame.time.Clock()
 from src.tilemap import tilemap
 import src.objects as objects
+import src.camera as camera
 
 game_surface = pygame.Surface((SCREEN_SIZE[0]*2, SCREEN_SIZE[1]*2))
 background_surface = pygame.Surface((tilemap.width * tilemap.tilewidth, tilemap.height * tilemap.tileheight))
@@ -47,14 +48,18 @@ def startGame():
 
         game_surface.fill((255, 255, 255))
 
-        camera_position = (-player.rect.x + SCREEN_SIZE[0] - player.rect.width, -player.rect.y + SCREEN_SIZE[1] - player.rect.height)
+        camera.camera_position = (-player.rect.x + SCREEN_SIZE[0] - player.rect.width/2, -player.rect.y + SCREEN_SIZE[1] - player.rect.height/2)
 
-        game_surface.blit(background_surface, camera_position)
+        game_surface.blit(background_surface, camera.camera_position)
 
         for sprite in objects.GameObject.gameObjects:
-            sprite.draw(game_surface, camera_position)
+            sprite.draw(game_surface)
+
+        pygame.draw.circle(game_surface, (225, 0, 0), (SCREEN_SIZE[0], SCREEN_SIZE[1]), 20)
         
         pygame.transform.scale(game_surface, SCREEN_SIZE, screen)
+
+        
 
         pygame.display.update()
 
