@@ -67,13 +67,14 @@ class Boss(GameObject):
 class ChickenBoss(Boss):
 
 
-    FLYBY_SPEED = 1500
+    FLYBY_SPEED = 1000
 
     def __init__(self, spawnPos):
 
         super().__init__(spawnPos)
 
         self.battleStage = 1
+        self.alreadyAttacked = False
 
     def update(self, dt):
         player = self.getPlayer()
@@ -121,10 +122,13 @@ class ChickenBoss(Boss):
             print("2nd stage complete")
 
     def battleStage3(self, dt, playerAngle):
+        
+
         self.rect.x += ChickenBoss.FLYBY_SPEED * dt
 
-        if self.rect.x > (ARENA_LEFT+ARENA_RIGHT)/2:
-            Projectile.circularProjectileAttack(5, 400, 20, self.rect, False, playerAngle, 4)
+        if self.rect.x > (ARENA_LEFT+ARENA_RIGHT)/2 and not self.alreadyAttacked:
+            Projectile.circularProjectileAttack(10, 400, 20, self.rect, False, playerAngle, 4)
+            self.alreadyAttacked = True
         
         if self.rect.x > 3000:
             self.rect.x = -1000
@@ -133,6 +137,7 @@ class ChickenBoss(Boss):
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
+            self.alreadyAttacked = False
 
 
 
