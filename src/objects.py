@@ -5,6 +5,7 @@ import src.utils as utils
 import pytmx
 from pygame.locals import *
 from src.tilemap import tilemap, collisionRects
+import random
 
 RED = (255,0,0)
 ARENA_TOP = 120
@@ -64,6 +65,10 @@ class Boss(GameObject):
 
 
 class ChickenBoss(Boss):
+
+
+    FLYBY_SPEED = 1500
+
     def __init__(self, spawnPos):
 
         super().__init__(spawnPos)
@@ -78,14 +83,29 @@ class ChickenBoss(Boss):
 
         playerAngle = math.atan2(playerDistX,playerDistY) * (180/math.pi)
 
-        if self.battleStage == 1:
+        if self.battleStage == 3:
             self.battleStage1(playerAngle)
         if self.battleStage == 2:
             self.battleStage2(playerAngle)
+        if self.battleStage == 1:
+            self.battleStage3(dt, playerAngle)
+
 
     def battleStage1(self, playerAngle):
         if (pygame.time.get_ticks() - self.lastAttackTime) > 2000:
-            Projectile.circularProjectileAttack(5, 300, 20, self.rect, False, playerAngle)
+            Projectile.circularProjectileAttack(10, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4)
+            self.lastAttackTime = pygame.time.get_ticks()
+            self.health -= 10
+            print(self.health)
+
+        if self.health == 0:    
+            self.battleStage += 1
+            self.health = 100
+            print("1st stage complete")
+
+    def battleStage2(self, playerAngle):
+        if (pygame.time.get_ticks() - self.lastAttackTime) > 3000:
+            Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
@@ -98,17 +118,27 @@ class ChickenBoss(Boss):
 
         if self.health == 0:
             self.battleStage += 1
-            print("1st stage complete")
+            print("2nd stage complete")
 
-    def battleStage2(self, playerAngle):
-        if (pygame.time.get_ticks() - self.lastAttackTime) > 1000:
-            Projectile.circularProjectileAttack(10, 600, 100, (self.rect.x, self.rect.y), False, playerAngle)
+    def battleStage3(self, dt, playerAngle):
+        self.rect.x += ChickenBoss.FLYBY_SPEED * dt
+
+        if self.rect.x > (ARENA_LEFT+ARENA_RIGHT)/2:
+            Projectile.circularProjectileAttack(5, 400, 20, self.rect, False, playerAngle, 4)
+        
+        if self.rect.x > 3000:
+            self.rect.x = -1000
+            self.rect.y = random.randint(ARENA_TOP+50, ARENA_BOTTOM-50)
+            #Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
+            self.health -= 10
+            print(self.health)
+
 
 
         
 class Projectile(GameObject):
-    def __init__(self, magnitude, direction, pos, isBouncy):
+    def __init__(self, magnitude, direction, pos, isBouncy, bounceLimit):
 
         super().__init__()
 
@@ -121,7 +151,8 @@ class Projectile(GameObject):
         self.rect.y = pos[1]
 
         self.isBouncy = isBouncy
-        
+        self.numBounces = 0
+        self.bounceLimit = bounceLimit
 
         self.directionRadians = direction * (math.pi / 180.0)
         self.xVel = magnitude * math.sin(self.directionRadians)
@@ -136,7 +167,8 @@ class Projectile(GameObject):
                 self.delete()
                 
             #Kinda hacky but oh well
-            if self.isBouncy:
+            if self.isBouncy and self.numBounces < self.bounceLimit:
+                self.numBounces += 1
                 if self.rect.y > ARENA_BOTTOM:
                     self.yVel *= -1
                     self.rect.y = ARENA_BOTTOM-1
@@ -149,14 +181,16 @@ class Projectile(GameObject):
                 if self.rect.x > ARENA_RIGHT:
                     self.xVel *= -1
                     self.rect.x = ARENA_RIGHT-1
+            if self.isBouncy and self.numBounces == self.bounceLimit:
+                self.delete()
     
-    def circularProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle):
+    def circularProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit):
         for i in range(qty):
             projectile_angle = ((360/qty) * i) + initialAngle
             projectile_angle_radians = projectile_angle * (math.pi/180)
             spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
             spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
-            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
         
             
 
@@ -173,16 +207,16 @@ class Player(GameObject):
     def update(self, dt):
         keys = pygame.key.get_pressed()
 
-        if keys[K_UP]:
+        if keys[K_UP] or keys[K_w]:
             self.yv = -Player.SPEED
-        elif keys[K_DOWN]:
+        elif keys[K_DOWN] or keys[K_s]:
             self.yv = Player.SPEED
         else:
             self.yv = 0
 
-        if keys[K_LEFT]:
+        if keys[K_LEFT] or keys[K_a]:
             self.xv = -Player.SPEED
-        elif keys[K_RIGHT]:
+        elif keys[K_RIGHT] or keys[K_d]:
             self.xv = Player.SPEED
         else:
             self.xv = 0
