@@ -92,6 +92,19 @@ class ChickenBoss(Boss):
 
         super().__init__(spawnPos)
 
+        self.state = 'idle'
+        self.image_states = loadImageStates("assets/chicken")
+        self.image_offsets = {}
+        for key in self.image_states:
+            if key == 'idle':
+                self.image_offsets[key] = (0, 0)
+            elif key == 'windup':
+                self.image_offsets[key] = (25, -30)
+            elif key == 'burst':
+                self.image_offsets[key] = (-15, -25)
+            else:
+                self.image_offsets[key] = (0, 0)
+
         self.battleStage = 1
         self.alreadyAttacked = False
 
@@ -103,6 +116,9 @@ class ChickenBoss(Boss):
 
         playerAngle = math.atan2(playerDistX,playerDistY) * (180/math.pi)
 
+        self.image = self.image_states[self.state]
+        self.image_offset = self.image_offsets[self.state]
+
         if self.battleStage == 1:
             self.battleStage1(playerAngle)
         if self.battleStage == 2:
@@ -112,11 +128,17 @@ class ChickenBoss(Boss):
 
 
     def battleStage1(self, playerAngle):
-        if (pygame.time.get_ticks() - self.lastAttackTime) > 2000:
+        timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
+        if timeSinceLastAttack > 500:
+            self.state = 'idle'
+        if timeSinceLastAttack > 1500:
+            self.state = 'windup'
+        if timeSinceLastAttack > 2000:
             Projectile.circularProjectileAttack(10, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
+            self.state = 'burst'
 
         if self.health == 0:    
             self.battleStage += 1
@@ -124,11 +146,17 @@ class ChickenBoss(Boss):
             print("1st stage complete")
 
     def battleStage2(self, playerAngle):
+        timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
+        if timeSinceLastAttack > 500:
+            self.state = 'idle'
+        if timeSinceLastAttack > 2500:
+            self.state = 'windup'
         if (pygame.time.get_ticks() - self.lastAttackTime) > 3000:
             Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
+            self.state = 'burst'
         
         ''''
         if hit by rope:
@@ -139,9 +167,18 @@ class ChickenBoss(Boss):
         if self.health == 0:
             self.battleStage += 1
             print("2nd stage complete")
+            self.lastAttackTime = 0
+
+    def battleStage3Transition(self):
+        if self.lastAttackTime < 4000:
+            self.state = 'fly'
+        
+
+        self.rect.y += 50 * dt
 
     def battleStage3(self, dt, playerAngle):
-        
+
+
 
         self.rect.x += ChickenBoss.FLYBY_SPEED * dt
 
