@@ -36,13 +36,20 @@ class GameObject(pygame.sprite.Sprite):
         GameObject.gameObjects.append(self)
         self.flipped = False
         self.image_offset = (0, 0)
+        self.alpha = 256
     
     def draw(self, surface):
+        drawImage = self.image
+        if self.alpha != 256:
+            drawImage = self.image.copy()
+            # set opacity
+            drawImage.fill((255, 255, 255, self.alpha), None, pygame.BLEND_RGBA_MULT)
+        
         drawPosition = camera.worldToScreenSpace(self.rect.x, self.rect.y)
         drawRect = pygame.Rect(drawPosition[0], drawPosition[1], self.rect.width, self.rect.height)
         #pygame.draw.rect(surface, (0, 0, 0), drawRect)
         if self.image:
-            flipped = pygame.transform.flip(self.image, self.flipped, False)
+            flipped = pygame.transform.flip(drawImage, self.flipped, False)
             surface.blit(flipped, (drawRect.x + self.image_offset[0], drawRect.y + self.image_offset[1]))
 
     def update(self, dt):
@@ -161,6 +168,8 @@ class ChickenBoss(Boss):
 
         
 class Projectile(GameObject):
+    projectiles = []
+
     def __init__(self, magnitude, direction, pos, isBouncy, bounceLimit):
         super().__init__()
 
@@ -188,6 +197,7 @@ class Projectile(GameObject):
 
         if self.isTouchingWall():
             if not self.isBouncy:
+                Projectile.projectiles.remove(self)
                 self.delete()
                 
             #Kinda hacky but oh well
@@ -206,19 +216,16 @@ class Projectile(GameObject):
                     self.xVel *= -1
                     self.rect.x = ARENA_RIGHT-1
             if self.isBouncy and self.numBounces == self.bounceLimit:
+                Projectile.projectiles.remove(self)
                 self.delete()
     
-    def circularProjectileAttack(self, qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit):
+    def circularProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit):
         for i in range(qty):
             projectile_angle = ((360/qty) * i) + initialAngle
             projectile_angle_radians = projectile_angle * (math.pi/180)
             spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
             spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
             Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
-        
-        if self.isTouchingWall() and not self.isBouncy:
-            Projectile.projectiles.remove(self)
-            self.delete()
             
 class ThrownLasso(GameObject):
     def __init__(self, thrower, xVel, yVel, lastTime):
@@ -274,8 +281,11 @@ class Player(GameObject):
 
         self.lassoCharge = 0
         self.hurtTimer = 0
+        self.thrownLasso = None
         
         self.image_offset = (-40, -70)
+
+        self.healthBar = PlayerHealthBar(6)
     
     def handle_movement(self, dt):
         keys = pygame.key.get_pressed()
@@ -303,7 +313,7 @@ class Player(GameObject):
         throw_speed = pygame.math.Vector2(mouse_pos[0] - 450, mouse_pos[1] - 450)
         throw_speed.scale_to_length(600 + (self.lassoCharge * 600))
 
-        ThrownLasso(self, throw_speed.x, throw_speed.y, self.lassoCharge/2)
+        self.thrownLasso = ThrownLasso(self, throw_speed.x, throw_speed.y, self.lassoCharge/2)
 
         self.lassoCharge = 0
 
@@ -317,31 +327,44 @@ class Player(GameObject):
                     self.lassoCharge += dt
         else:
             if self.state == 'chargeLasso':
-                self.throw_lasso()
-                self.state = 'throwLasso'
+                if self.lassoCharge > 0.2:
+                    self.throw_lasso()
+                    self.state = 'throwLasso'
+                else:
+                    self.state = 'idle'
+                
     
     def takeDamage(self, projectile):
-        if self.state == 'hurt':
+        if self.hurtTimer > 0:
             return
+
+        if self.state == 'throwLasso':
+            self.thrownLasso.delete()
         self.state = 'hurt'
         distance = pygame.math.Vector2(projectile.rect.centerx - self.rect.centerx, projectile.rect.centery - self.rect.centery)
         distance.scale_to_length(2000)
         self.xVel = -distance.x 
         self.yVel = -distance.y
-        self.hurtTimer = 0.4
+        self.hurtTimer = 0.8
+        self.alpha = 128
+        self.healthBar.hp -= 1
 
     def update(self, dt):
         self.image = self.imageStates[self.state]
         
+        if self.hurtTimer < 0:
+            self.alpha = 256
+        else:
+            self.hurtTimer -= dt
+
         if self.state != 'hurt':
             self.handle_movement(dt)
         else:
-            self.hurtTimer -= dt
             self.xVel *= 0.7
             self.yVel *= 0.7
-            if self.hurtTimer < 0:
+            if self.hurtTimer < 0.4:
                 self.state = 'idle'
-
+        
         self.rect.x += self.xVel * dt
         if self.isTouchingWall():
             self.rect.x -= self.xVel * dt
@@ -370,4 +393,25 @@ class Player(GameObject):
 
     def getPos(self):
         return (self.rect.x, self.rect.y)
+
+class PlayerHealthBar(GameObject):
+    heart_empty = pygame.image.load('assets/heart-empty.png')
+    heart_full = pygame.image.load('assets/heart-full.png')
+    text_you = pygame.image.load('assets/text-you.png')
+
+    def __init__(self, maxHp):
+        super().__init__()
+        self.maxHp = 6
+        self.hp = maxHp
+    
+    def draw(self, surface):
+        for i in range(0, self.maxHp):
+            image = None
+            if self.hp > i:
+                image = PlayerHealthBar.heart_full
+            else:
+                image = PlayerHealthBar.heart_empty
+            
+            surface.blit(image, (i * 100 + 10, 100))
         
+        surface.blit(PlayerHealthBar.text_you, (5, 5))
