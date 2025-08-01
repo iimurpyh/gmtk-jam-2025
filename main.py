@@ -16,7 +16,7 @@ background_surface = pygame.Surface((tilemap.width * tilemap.tilewidth, tilemap.
 FPS = 60
 
 player = objects.Player()
-player.rect.x = SCREEN_SIZE[0] / 2 + player.rect.width/2
+player.rect.x = SCREEN_SIZE[0] + player.rect.width
 player.rect.y = SCREEN_SIZE[1] / 2 + player.rect.height/2
 
 

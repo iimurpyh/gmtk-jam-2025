@@ -20,7 +20,6 @@ def loadImageStates(pathName):
     images = {}
     for file in os.listdir(pathName):
         if not os.path.isdir(file):
-            print(os.path.basename(file))
             images[os.path.splitext(os.path.basename(file))[0]] = pygame.image.load(os.path.join(pathName, file))
     
     return images
@@ -163,7 +162,6 @@ class ChickenBoss(Boss):
         
 class Projectile(GameObject):
     def __init__(self, magnitude, direction, pos, isBouncy, bounceLimit):
-
         super().__init__()
 
         self.image = pygame.Surface([50,50])
@@ -181,6 +179,8 @@ class Projectile(GameObject):
         self.directionRadians = direction * (math.pi / 180.0)
         self.xVel = magnitude * math.sin(self.directionRadians)
         self.yVel = magnitude * math.cos(self.directionRadians)
+
+        Projectile.projectiles.append(self)
 
     def update(self, dt):
         self.rect.x += self.xVel * dt
@@ -208,7 +208,7 @@ class Projectile(GameObject):
             if self.isBouncy and self.numBounces == self.bounceLimit:
                 self.delete()
     
-    def circularProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit):
+    def circularProjectileAttack(self, qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit):
         for i in range(qty):
             projectile_angle = ((360/qty) * i) + initialAngle
             projectile_angle_radians = projectile_angle * (math.pi/180)
@@ -216,6 +216,9 @@ class Projectile(GameObject):
             spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
             Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
         
+        if self.isTouchingWall() and not self.isBouncy:
+            Projectile.projectiles.remove(self)
+            self.delete()
             
 class ThrownLasso(GameObject):
     def __init__(self, thrower, xVel, yVel, lastTime):
@@ -246,6 +249,16 @@ class ThrownLasso(GameObject):
             self.rect.x = pos.x
             self.rect.y = pos.y
     
+    def draw(self, surface):
+        super().draw(surface)
+        start_pos = camera.worldToScreenSpace(self.rect.x, self.rect.y + self.rect.height)
+        offsetX = -20
+        if self.thrower.flipped:
+            offsetX = 105
+
+        end_pos = camera.worldToScreenSpace(self.thrower.rect.x + offsetX, self.thrower.rect.y - 5)
+        utils.draw_line_round_corners_polygon(surface, start_pos, end_pos, (15, 11, 9), 4)
+    
 
 class Player(GameObject):
     SPEED = 400
@@ -260,6 +273,7 @@ class Player(GameObject):
         self.state = 'idle'
 
         self.lassoCharge = 0
+        self.hurtTimer = 0
         
         self.image_offset = (-40, -70)
     
@@ -283,16 +297,6 @@ class Player(GameObject):
             self.xVel = Player.SPEED
         else:
             self.xVel = 0
-        
-        self.rect.x += self.xVel * dt
-        if self.isTouchingWall():
-            self.rect.x -= self.xVel * dt
-            self.xVel = 0
-            
-        self.rect.y += self.yVel * dt
-        if self.isTouchingWall():
-            self.rect.y -= self.yVel * dt
-            self.yVel = 0
     
     def throw_lasso(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -315,12 +319,44 @@ class Player(GameObject):
             if self.state == 'chargeLasso':
                 self.throw_lasso()
                 self.state = 'throwLasso'
+    
+    def takeDamage(self, projectile):
+        if self.state == 'hurt':
+            return
+        self.state = 'hurt'
+        distance = pygame.math.Vector2(projectile.rect.centerx - self.rect.centerx, projectile.rect.centery - self.rect.centery)
+        distance.scale_to_length(2000)
+        self.xVel = -distance.x 
+        self.yVel = -distance.y
+        self.hurtTimer = 0.4
 
     def update(self, dt):
         self.image = self.imageStates[self.state]
         
-        self.handle_movement(dt)
+        if self.state != 'hurt':
+            self.handle_movement(dt)
+        else:
+            self.hurtTimer -= dt
+            self.xVel *= 0.7
+            self.yVel *= 0.7
+            if self.hurtTimer < 0:
+                self.state = 'idle'
+
+        self.rect.x += self.xVel * dt
+        if self.isTouchingWall():
+            self.rect.x -= self.xVel * dt
+            self.xVel = 0
+            
+        self.rect.y += self.yVel * dt
+        if self.isTouchingWall():
+            self.rect.y -= self.yVel * dt
+            self.yVel = 0
+
         self.handle_lasso(dt)
+
+        damageResult = self.rect.collidelist(Projectile.projectiles) 
+        if damageResult != -1:
+            self.takeDamage(Projectile.projectiles[damageResult])
     
     def draw(self, surface):
         if self.state == 'chargeLasso' and self.lassoCharge > 0:
