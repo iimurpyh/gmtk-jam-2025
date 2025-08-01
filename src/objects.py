@@ -51,6 +51,7 @@ class GameObject(pygame.sprite.Sprite):
         if self.image:
             flipped = pygame.transform.flip(drawImage, self.flipped, False)
             surface.blit(flipped, (drawRect.x + self.image_offset[0], drawRect.y + self.image_offset[1]))
+        pygame.draw.rect(surface, (0, 0, 0), drawRect)
 
     def update(self, dt):
         pass
@@ -100,6 +101,7 @@ class ChickenBoss(Boss):
 
         self.battleStage = 1
         self.alreadyAttacked = False
+        self.healthBar = BossHealthBar(200)
 
     def update(self, dt):
         player = self.getPlayer()
@@ -272,7 +274,7 @@ class Player(GameObject):
 
     def __init__(self):
         super().__init__()
-        self.rect = pygame.Rect(0, 0, 130, 100)
+        self.rect = pygame.Rect(0, 0, 40, 40)
         self.xVel = 0
         self.yVel = 0
 
@@ -283,7 +285,7 @@ class Player(GameObject):
         self.hurtTimer = 0
         self.thrownLasso = None
         
-        self.image_offset = (-40, -70)
+        self.image_offset = (-60, -70)
 
         self.healthBar = PlayerHealthBar(6)
     
@@ -299,11 +301,11 @@ class Player(GameObject):
 
         if keys[K_LEFT] or keys[K_a]:
             self.flipped = False
-            self.image_offset = (-40, -70)
+            self.image_offset = (-60, -70)
             self.xVel = -Player.SPEED
         elif keys[K_RIGHT] or keys[K_d]:
             self.flipped = True
-            self.image_offset = (-80, -70)
+            self.image_offset = (-110, -70)
             self.xVel = Player.SPEED
         else:
             self.xVel = 0
@@ -391,6 +393,8 @@ class Player(GameObject):
         
         super().draw(surface)
 
+        pygame.draw.rect(surface, (255, 0, 0), self.rect)
+
     def getPos(self):
         return (self.rect.x, self.rect.y)
 
@@ -415,3 +419,17 @@ class PlayerHealthBar(GameObject):
             surface.blit(image, (i * 100 + 10, 100))
         
         surface.blit(PlayerHealthBar.text_you, (5, 5))
+
+class BossHealthBar(GameObject):
+    text_boss = pygame.image.load('assets/text-boss.png')
+    boss_bar = pygame.image.load('assets/boss-bar.png')
+
+    def __init__(self, maxHp):
+        super().__init__()
+        self.maxHp = 200
+        self.hp = maxHp
+    
+    def draw(self, surface):
+        pygame.draw.rect(surface, (219, 165, 135), pygame.Rect(908, 107, 723.25, 77))
+        surface.blit(BossHealthBar.boss_bar, (900, 100))
+        surface.blit(BossHealthBar.text_boss, (900, 5))
