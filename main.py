@@ -54,8 +54,6 @@ def startGame():
 
         for sprite in objects.GameObject.gameObjects:
             sprite.draw(game_surface)
-
-        pygame.draw.circle(game_surface, (225, 0, 0), (SCREEN_SIZE[0], SCREEN_SIZE[1]), 20)
         
         pygame.transform.scale(game_surface, SCREEN_SIZE, screen)
 

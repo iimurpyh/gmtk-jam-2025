@@ -51,7 +51,6 @@ class GameObject(pygame.sprite.Sprite):
         if self.image:
             flipped = pygame.transform.flip(drawImage, self.flipped, False)
             surface.blit(flipped, (drawRect.x + self.image_offset[0], drawRect.y + self.image_offset[1]))
-        pygame.draw.rect(surface, (0, 0, 0), drawRect)
 
     def update(self, dt):
         pass
@@ -230,10 +229,15 @@ class Projectile(GameObject):
             Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
             
 class ThrownLasso(GameObject):
+    thrown_lasso = pygame.image.load('assets/thrownLasso.png', 'thrownLasso')
+
     def __init__(self, thrower, xVel, yVel, lastTime):
         super().__init__()
-        self.rect = pygame.Rect(thrower.rect.x, thrower.rect.y, 48, 10)
-        self.image = pygame.image.load('assets/thrownLasso.png', 'thrownLasso')
+
+        self.image = ThrownLasso.thrown_lasso
+        self.rect = self.image.get_rect()
+        self.rect.x = thrower.rect.x
+        self.rect.y = thrower.rect.y
 
         self.xVel = xVel
         self.yVel = yVel
@@ -260,7 +264,7 @@ class ThrownLasso(GameObject):
     
     def draw(self, surface):
         super().draw(surface)
-        start_pos = camera.worldToScreenSpace(self.rect.x, self.rect.y + self.rect.height)
+        start_pos = camera.worldToScreenSpace(self.rect.x + 5, self.rect.centery)
         offsetX = -20
         if self.thrower.flipped:
             offsetX = 105
@@ -274,7 +278,7 @@ class Player(GameObject):
 
     def __init__(self):
         super().__init__()
-        self.rect = pygame.Rect(0, 0, 40, 40)
+        self.rect = pygame.Rect(0, 0, 70, 70)
         self.xVel = 0
         self.yVel = 0
 
@@ -392,8 +396,6 @@ class Player(GameObject):
             utils.draw_line_round_corners_polygon(surface, start_pos, (end_pos.x + start_pos[0], end_pos.y + start_pos[1]), (255, 255, 255), 20)
         
         super().draw(surface)
-
-        pygame.draw.rect(surface, (255, 0, 0), self.rect)
 
     def getPos(self):
         return (self.rect.x, self.rect.y)
