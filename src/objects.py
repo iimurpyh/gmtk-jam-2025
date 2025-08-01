@@ -50,7 +50,6 @@ class Boss(GameObject):
         self.rect.y = spawnPos[1]
 
         self.lastAttackTime = 0
-        
 
         self.xVel = 0
         self.yVel = 0
@@ -84,11 +83,11 @@ class ChickenBoss(Boss):
 
         playerAngle = math.atan2(playerDistX,playerDistY) * (180/math.pi)
 
-        if self.battleStage == 3:
+        if self.battleStage == 1:
             self.battleStage1(playerAngle)
         if self.battleStage == 2:
             self.battleStage2(playerAngle)
-        if self.battleStage == 1:
+        if self.battleStage == 3:
             self.battleStage3(dt, playerAngle)
 
 
