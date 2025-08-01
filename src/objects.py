@@ -98,7 +98,20 @@ class ChickenBoss(Boss):
 
         super().__init__(spawnPos)
 
-        self.battleStage = 1
+        self.state = 'idle'
+        self.image_states = loadImageStates("assets/chicken")
+        self.image_offsets = {}
+        for key in self.image_states:
+            if key == 'idle':
+                self.image_offsets[key] = (0, 0)
+            elif key == 'windup':
+                self.image_offsets[key] = (25, -30)
+            elif key == 'burst':
+                self.image_offsets[key] = (-15, -25)
+            else:
+                self.image_offsets[key] = (0, 0)
+
+        self.battleStage = 0
         self.alreadyAttacked = False
         self.healthBar = BossHealthBar(200)
 
@@ -110,20 +123,51 @@ class ChickenBoss(Boss):
 
         playerAngle = math.atan2(playerDistX,playerDistY) * (180/math.pi)
 
+        self.image = self.image_states[self.state]
+        self.image_offset = self.image_offsets[self.state]
+
+        if self.battleStage == 0:
+            self.battleStage0(playerAngle)
         if self.battleStage == 1:
             self.battleStage1(playerAngle)
         if self.battleStage == 2:
             self.battleStage2(playerAngle)
         if self.battleStage == 3:
+            self.battleStage3Transition(dt)
+        if self.battleStage == 4:
             self.battleStage3(dt, playerAngle)
 
 
+    def battleStage0(self, playerAngle):
+        timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
+        if timeSinceLastAttack > 500:
+            self.state = 'idle'
+        if timeSinceLastAttack > 4500:
+            self.state = 'windup'
+        if timeSinceLastAttack > 5000:
+            Projectile.targetedProjectileAttack(5, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4, 10)
+            self.lastAttackTime = pygame.time.get_ticks()
+            self.health -= 10
+            print(self.health)
+            self.state = 'featherThrow'
+
+        if self.health == 0:    
+            self.battleStage += 1
+            self.health = 100
+            print("0th stage complete")
+
     def battleStage1(self, playerAngle):
-        if (pygame.time.get_ticks() - self.lastAttackTime) > 2000:
+        timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
+        if timeSinceLastAttack > 500:
+            self.state = 'idle'
+        if timeSinceLastAttack > 1500:
+            self.state = 'windup'
+        if timeSinceLastAttack > 2000:
             Projectile.circularProjectileAttack(10, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
+            self.state = 'burst'
 
         if self.health == 0:    
             self.battleStage += 1
@@ -131,11 +175,17 @@ class ChickenBoss(Boss):
             print("1st stage complete")
 
     def battleStage2(self, playerAngle):
+        timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
+        if timeSinceLastAttack > 500:
+            self.state = 'idle'
+        if timeSinceLastAttack > 2500:
+            self.state = 'windup'
         if (pygame.time.get_ticks() - self.lastAttackTime) > 3000:
             Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.health -= 10
             print(self.health)
+            self.state = 'burst'
         
         ''''
         if hit by rope:
@@ -146,9 +196,19 @@ class ChickenBoss(Boss):
         if self.health == 0:
             self.battleStage += 1
             print("2nd stage complete")
+            self.lastAttackTime = pygame.time.get_ticks()
+
+    def battleStage3Transition(self,dt):
+        if self.rect.y > ARENA_TOP + 100:
+            self.rect.y -= 100 * dt
+            self.state = 'fly'
+        else:
+            self.battleStage += 1
+            self.alreadyAttacked = True
 
     def battleStage3(self, dt, playerAngle):
-        
+
+        self.state = 'fly2'
 
         self.rect.x += ChickenBoss.FLYBY_SPEED * dt
 
@@ -174,8 +234,10 @@ class Projectile(GameObject):
     def __init__(self, magnitude, direction, pos, isBouncy, bounceLimit):
         super().__init__()
 
-        self.image = pygame.Surface([50,50])
-        self.image.fill(RED)
+        image = pygame.image.load('assets/feather.png', 'feather')
+        imageScaled = pygame.transform.scale(image, (40,80))
+        imageRotated = pygame.transform.rotate(imageScaled, direction)
+        self.image = imageRotated
 
         self.rect = self.image.get_rect()
 
@@ -227,6 +289,22 @@ class Projectile(GameObject):
             spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
             spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
             Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
+
+    def targetedProjectileAttack(qty, magnitude, spawnDist, origin, isBouncy, initialAngle, bounceLimit, spreadAngle):
+        prevAngle = 0
+        for i in range(qty):
+            multiplier = 1
+            if i % 2 == 0:
+                multiplier = -1
+            prevAngle = prevAngle + spreadAngle * i * multiplier
+            projectile_angle = initialAngle + prevAngle
+            projectile_angle_radians = projectile_angle * (math.pi/180)
+            spawnPosX = origin[0] + spawnDist * math.sin(projectile_angle_radians)
+            spawnPosY = origin[1] + spawnDist * math.cos(projectile_angle_radians)
+            Projectile(magnitude, projectile_angle, (spawnPosX, spawnPosY), isBouncy, bounceLimit)
+
+
+        
             
 class ThrownLasso(GameObject):
     thrown_lasso = pygame.image.load('assets/thrownLasso.png', 'thrownLasso')
