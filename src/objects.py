@@ -152,6 +152,9 @@ class ChickenBoss(Boss):
                 self.image_offsets[key] = (0, 0)
 
         self.alreadyAttacked = False
+        self.rect = self.image_states['idle'].get_rect()
+        self.rect.x = spawnPos[0]
+        self.rect.y = spawnPos[1]
         self.healthBar = BossHealthBar(200)
 
     def update(self, dt):
@@ -373,9 +376,9 @@ class ThrownLasso(GameObject):
     def draw(self, surface):
         super().draw(surface)
         start_pos = camera.worldToScreenSpace(self.rect.x + 5, self.rect.centery)
-        offsetX = -20
+        offsetX = -40
         if self.thrower.flipped:
-            offsetX = 105
+            offsetX = 85
 
         end_pos = camera.worldToScreenSpace(self.thrower.rect.x + offsetX, self.thrower.rect.y - 5)
         utils.draw_line_round_corners_polygon(surface, start_pos, end_pos, (15, 11, 9), 4)
