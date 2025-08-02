@@ -84,6 +84,8 @@ class Boss(GameObject):
 
         self.battleStage = 0
 
+        self.healthBar = BossHealthBar(self.health)
+
     def getPlayer(self):
         for gameobject in GameObject.gameObjects:
             if isinstance(gameobject,Player):
@@ -120,14 +122,10 @@ class Boss(GameObject):
             self.alpha = 128
         else:
             self.alpha = 255
+
+        self.healthBar.hp = self.health
             
         
-
-
-
-
-
-
 
 class ChickenBoss(Boss):
 
@@ -542,10 +540,12 @@ class BossHealthBar(GameObject):
 
     def __init__(self, maxHp):
         super().__init__()
-        self.maxHp = 200
+        self.maxHp = maxHp
         self.hp = maxHp
     
     def draw(self, surface):
-        pygame.draw.rect(surface, (219, 165, 135), pygame.Rect(908, 107, 723.25, 77))
+        barWidth = 723.25 * (self.hp / self.maxHp)
+        print(barWidth)
+        pygame.draw.rect(surface, (219, 165, 135), pygame.Rect(908, 107, barWidth, 77))
         surface.blit(BossHealthBar.boss_bar, (900, 100))
         surface.blit(BossHealthBar.text_boss, (900, 5))
