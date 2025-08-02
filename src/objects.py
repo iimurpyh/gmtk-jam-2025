@@ -153,7 +153,6 @@ class ChickenBoss(Boss):
         self.rect = self.image_states['idle'].get_rect()
         self.rect.x = spawnPos[0]
         self.rect.y = spawnPos[1]
-        self.healthBar = BossHealthBar(200)
 
     def update(self, dt):
         player = self.getPlayer()
@@ -545,7 +544,37 @@ class BossHealthBar(GameObject):
     
     def draw(self, surface):
         barWidth = 723.25 * (self.hp / self.maxHp)
-        print(barWidth)
+        #print(barWidth)
         pygame.draw.rect(surface, (219, 165, 135), pygame.Rect(908, 107, barWidth, 77))
         surface.blit(BossHealthBar.boss_bar, (900, 100))
         surface.blit(BossHealthBar.text_boss, (900, 5))
+
+class Button:
+    def __init__(self, x, y, width, height, fg, bg, content, fontsize):
+        self.font = pygame.font.Font('assets\Deadtoast.ttf', fontsize)
+        self.content = content
+
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+        self.fg = fg
+        self.bg = bg
+
+        self.image = pygame. Surface((self.width, self.height))
+        self.image.fill(self.bg)
+        self.rect = self.image.get_rect()
+
+        self.rect.x = self.x
+        self.rect.y = self.y
+
+        self.text = self. font.render(self.content, True, self.fg)
+        self.text_rect = self.text.get_rect(center=(self.width/2, self.height/2))
+        self.image.blit(self.text, self.text_rect)
+
+    def is_pressed(self, pos, pressed) :
+        if self.rect.collidepoint(pos):
+            if pressed[0]:
+                return True
+        return False
