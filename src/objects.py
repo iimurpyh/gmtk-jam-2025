@@ -69,6 +69,7 @@ class Boss(GameObject):
         self.image.fill(RED)
 
         self.health = 100
+        self.prevCollided = False
 
         self.rect = self.image.get_rect()
 
@@ -80,12 +81,44 @@ class Boss(GameObject):
         self.xVel = 0
         self.yVel = 0
 
+        self.battleStage = 0
+
     def getPlayer(self):
-        for object in GameObject.gameObjects:
-            if isinstance(object,Player):
-                return object
+        for gameobject in GameObject.gameObjects:
+            if isinstance(gameobject,Player):
+                return gameobject
             
         return Player()
+    
+    def getLasso(self):
+        for gameobject in GameObject.gameObjects:
+            if isinstance(gameobject,ThrownLasso):
+                return (True, gameobject)
+            
+        return (False, 0)
+            
+    
+    
+    def manageHealth(self):
+        lasso = self.getLasso()
+        if lasso[0] == True:
+            if self.rect.colliderect(lasso[1].getRect()) and not self.prevCollided:
+                self.health -= 10
+                
+                self.prevCollided = True
+            elif not self.rect.colliderect(lasso[1].getRect()) and self.prevCollided:
+                self.prevCollided = False
+        
+        if self.health == 0:
+            print("Stage " + str(self.battleStage) + " complete")
+            self.battleStage += 1
+            self.health = 100
+            
+        
+
+
+
+
 
 
 
@@ -111,7 +144,6 @@ class ChickenBoss(Boss):
             else:
                 self.image_offsets[key] = (0, 0)
 
-        self.battleStage = 0
         self.alreadyAttacked = False
         self.healthBar = BossHealthBar(200)
 
@@ -137,6 +169,8 @@ class ChickenBoss(Boss):
         if self.battleStage == 4:
             self.battleStage3(dt, playerAngle)
 
+        self.manageHealth()
+
 
     def battleStage0(self, playerAngle):
         timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
@@ -147,14 +181,7 @@ class ChickenBoss(Boss):
         if timeSinceLastAttack > 5000:
             Projectile.targetedProjectileAttack(5, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4, 10)
             self.lastAttackTime = pygame.time.get_ticks()
-            self.health -= 10
-            print(self.health)
             self.state = 'featherThrow'
-
-        if self.health == 0:    
-            self.battleStage += 1
-            self.health = 100
-            print("0th stage complete")
 
     def battleStage1(self, playerAngle):
         timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
@@ -165,14 +192,7 @@ class ChickenBoss(Boss):
         if timeSinceLastAttack > 2000:
             Projectile.circularProjectileAttack(10, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
-            self.health -= 10
-            print(self.health)
             self.state = 'burst'
-
-        if self.health == 0:    
-            self.battleStage += 1
-            self.health = 100
-            print("1st stage complete")
 
     def battleStage2(self, playerAngle):
         timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
@@ -183,8 +203,6 @@ class ChickenBoss(Boss):
         if (pygame.time.get_ticks() - self.lastAttackTime) > 3000:
             Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
-            self.health -= 10
-            print(self.health)
             self.state = 'burst'
         
         ''''
@@ -192,11 +210,6 @@ class ChickenBoss(Boss):
             self.health -= 10
             print(self.health)
         '''''           
-
-        if self.health == 0:
-            self.battleStage += 1
-            print("2nd stage complete")
-            self.lastAttackTime = pygame.time.get_ticks()
 
     def battleStage3Transition(self,dt):
         if self.rect.y > ARENA_TOP + 100:
@@ -221,8 +234,6 @@ class ChickenBoss(Boss):
             self.rect.y = random.randint(ARENA_TOP+50, ARENA_BOTTOM-50)
             #Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
-            self.health -= 10
-            print(self.health)
             self.alreadyAttacked = False
 
 
@@ -349,6 +360,9 @@ class ThrownLasso(GameObject):
 
         end_pos = camera.worldToScreenSpace(self.thrower.rect.x + offsetX, self.thrower.rect.y - 5)
         utils.draw_line_round_corners_polygon(surface, start_pos, end_pos, (15, 11, 9), 4)
+
+    def getRect(self):
+        return self.rect
     
 
 class Player(GameObject):
