@@ -89,13 +89,13 @@ def titleScreen():
     quit_button = objects.Button(quit_button_ctr[0], quit_button_ctr[1], button_width, button_height, WHITE, BLACK, 'Quit', 100)
 
 
-    font2 = pygame.font.Font('assets\Deadtoast.ttf', 64)
+    font2 = pygame.font.Font('assets\Deadtoast.ttf', 28)
     backstory_txt = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper tempus augue eu gravida. Maecenas tempus feugiat eros non rutrum. Curabitur vitae porttitor risus, in ornare ante. Nunc erat arcu, imperdiet nec tristique ut, porta sed dui. Sed id urna justo. Aenean posuere libero massa, vel consectetur urna pharetra nec. Mauris facilisis tristique nulla ac finibus. Aliquam consequat lacinia libero, vitae dictum lorem tempor a. In nisi dui, dapibus a enim nec, lobortis finibus ante. Morbi id ligula odio. Vivamus ut lacus lacus. Duis commodo, mauris eu maximus faucibus, ipsum nunc gravida mi, facilisis malesuada leo dolor a nisi. '
 
-    backstory_width = 300
-    backstory_height = 200
+    backstory_width = 600
+    backstory_height = 400
     
-    backstory_ctr = (ctrLine - (backstory_width/2), title_y + 250)
+    backstory_ctr = (ctrLine - (backstory_width/2), title_y + 150)
     backstory_rect = pygame.Rect(backstory_ctr[0],backstory_ctr[1],backstory_width,backstory_height)
 
     while status == 'running':
@@ -114,7 +114,7 @@ def titleScreen():
 
         screen.fill(BACKGROUND_COL)
         screen.blit(title, title_rect)
-        #drawText(screen,backstory_txt,BLACK,backstory_rect,font2)
+        drawText(screen,backstory_txt,BLACK,backstory_rect,font2)
         screen.blit(play_button.image, play_button.rect)
         screen.blit(quit_button.image, quit_button.rect)
         clock.tick(FPS)
@@ -126,7 +126,7 @@ def titleScreen():
         startGame()
 
 def drawText(surface, text, color, rect, font, aa=False, bkg=None):
-    rect = pygame.rect(rect)
+    rect = pygame.Rect(rect)
     y = rect.top
     lineSpacing = -2
 
