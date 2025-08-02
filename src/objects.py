@@ -27,7 +27,6 @@ def loadImageStates(pathName):
 class GameObject(pygame.sprite.Sprite):
     gameObjects = []
 
-
     def isTouchingWall(self):
         return self.rect.collidelist(collisionRects) != -1
 
@@ -560,7 +559,7 @@ class Player(GameObject):
     def getPos(self):
         return (self.rect.x, self.rect.y)
 
-class PlayerHealthBar(GameObject):
+class PlayerHealthBar(pygame.sprite.Sprite):
     heart_empty = pygame.image.load('assets/heart-empty.png')
     heart_full = pygame.image.load('assets/heart-full.png')
     text_you = pygame.image.load('assets/text-you.png')
@@ -582,7 +581,7 @@ class PlayerHealthBar(GameObject):
         
         surface.blit(PlayerHealthBar.text_you, (5, 5))
 
-class BossHealthBar(GameObject):
+class BossHealthBar(pygame.sprite.Sprite):
     text_boss = pygame.image.load('assets/text-boss.png')
     boss_bar = pygame.image.load('assets/boss-bar.png')
 

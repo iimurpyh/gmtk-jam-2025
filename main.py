@@ -54,6 +54,9 @@ def startGame():
 
         for sprite in objects.GameObject.gameObjects:
             sprite.draw(game_surface)
+
+        player.healthBar.draw(game_surface)
+        boss.healthBar.draw(game_surface)
         
         pygame.transform.scale(game_surface, SCREEN_SIZE, screen)
 
