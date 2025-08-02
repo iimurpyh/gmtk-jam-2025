@@ -20,7 +20,7 @@ player.rect.x = SCREEN_SIZE[0] + player.rect.width
 player.rect.y = SCREEN_SIZE[1] / 2 + player.rect.height/2
 
 
-boss = objects.ChickenBoss((725,550))
+boss = objects.ChickenBoss((725,200))
 
 def draw_tilemap():
     background_surface.fill((255, 255, 255))

@@ -71,6 +71,7 @@ class Boss(GameObject):
         self.health = 100
         self.prevCollided = False
         self.lastDamageTime = 0
+        self.lastPatternChangeTime = pygame.time.get_ticks()
 
         self.rect = self.image.get_rect()
 
@@ -111,11 +112,11 @@ class Boss(GameObject):
                 self.prevCollided = True
             elif not self.rect.colliderect(lasso[1].getRect()) and self.prevCollided:
                 self.prevCollided = False
-        
+        """
         if self.health == 0:
             print("Stage " + str(self.battleStage) + " complete")
             self.battleStage += 1
-            self.health = 100
+            self.health = 100"""
 
         timeSinceLastDamage = pygame.time.get_ticks() - self.lastDamageTime
         if timeSinceLastDamage <= 250:
@@ -124,13 +125,22 @@ class Boss(GameObject):
             self.alpha = 255
 
         self.healthBar.hp = self.health
-            
+    
+    def update(self, dt):
+        super().update(dt)
+        timeSinceLastPatternChange = pygame.time.get_ticks() - self.lastPatternChangeTime
+        if timeSinceLastPatternChange > 7000:
+            self.battleStage += 1
+            self.lastPatternChangeTime = pygame.time.get_ticks()
+        
+        if self.getPlayer():
+            self.flipped = self.getPlayer().rect.centerx < self.rect.centerx
         
 
 class ChickenBoss(Boss):
 
 
-    FLYBY_SPEED = 1000
+    FLYBY_SPEED = 2000
 
     def __init__(self, spawnPos):
 
@@ -153,9 +163,13 @@ class ChickenBoss(Boss):
         self.rect = self.image_states['idle'].get_rect()
         self.rect.x = spawnPos[0]
         self.rect.y = spawnPos[1]
-        self.healthBar = BossHealthBar(200)
+
+        self.arenaPosition = 1
+
+        self.subAttackTimer = 0
 
     def update(self, dt):
+        super().update(dt)
         player = self.getPlayer()
 
         playerDistX = player.getPos()[0] - self.rect.x
@@ -176,29 +190,39 @@ class ChickenBoss(Boss):
             self.battleStage3Transition(dt)
         if self.battleStage == 4:
             self.battleStage3(dt, playerAngle)
+        if self.battleStage == 5:
+            self.battleStage4(dt)
 
         self.manageHealth()
 
 
     def battleStage0(self, playerAngle):
         timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
-        if timeSinceLastAttack > 500:
-            self.state = 'idle'
-        if timeSinceLastAttack > 4500:
-            self.state = 'windup'
-        if timeSinceLastAttack > 5000:
-            Projectile.targetedProjectileAttack(5, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4, 10, 'feather')
+        
+        if timeSinceLastAttack > 1700:
             self.lastAttackTime = pygame.time.get_ticks()
+        if timeSinceLastAttack > 1000:
             self.state = 'featherThrow'
+            subTimer = pygame.time.get_ticks() - self.subAttackTimer
+            if subTimer > 300:
+                if timeSinceLastAttack > 1600:
+                    Projectile.targetedProjectileAttack(1, 400, 100, (self.rect.centerx, self.rect.centery), False, playerAngle, 4, 40, 'feather')
+                elif timeSinceLastAttack > 1300:
+                    Projectile.targetedProjectileAttack(4, 400, 100, (self.rect.centerx, self.rect.centery), False, playerAngle, 4, 40, 'feather')
+                else:
+                    Projectile.targetedProjectileAttack(3, 400, 100, (self.rect.centerx, self.rect.centery), False, playerAngle, 4, 20, 'feather')
+                self.subAttackTimer = pygame.time.get_ticks()
+        elif timeSinceLastAttack > 200:
+            self.state = 'idle'
 
     def battleStage1(self, playerAngle):
         timeSinceLastAttack = pygame.time.get_ticks() - self.lastAttackTime
-        if timeSinceLastAttack > 500:
+        if timeSinceLastAttack > 200:
             self.state = 'idle'
-        if timeSinceLastAttack > 1500:
+        if timeSinceLastAttack > 800:
             self.state = 'windup'
-        if timeSinceLastAttack > 2000:
-            Projectile.circularProjectileAttack(10, 400, 100, (self.rect.x, self.rect.y), False, playerAngle, 4, 'feather')
+        if timeSinceLastAttack > 900:
+            Projectile.circularProjectileAttack(10, 400, 100, (self.rect.centerx, self.rect.centery), False, playerAngle, 4, 'feather')
             self.lastAttackTime = pygame.time.get_ticks()
             self.state = 'burst'
 
@@ -220,8 +244,8 @@ class ChickenBoss(Boss):
         '''''           
 
     def battleStage3Transition(self,dt):
-        if self.rect.y > ARENA_TOP + 100:
-            self.rect.y -= 100 * dt
+        if self.rect.y > ARENA_TOP - 300:
+            self.rect.y -= 700 * dt
             self.state = 'fly'
         else:
             self.battleStage += 1
@@ -233,16 +257,40 @@ class ChickenBoss(Boss):
 
         self.rect.x += ChickenBoss.FLYBY_SPEED * dt
 
-        if self.rect.x > (ARENA_LEFT+ARENA_RIGHT)/2 and not self.alreadyAttacked:
-            Projectile.circularProjectileAttack(10, 400, 20, self.rect, False, playerAngle, 4, 'feather')
-            self.alreadyAttacked = True
-        
+        if self.rect.x > ARENA_LEFT and self.rect.x < ARENA_RIGHT:
+            subTimer = pygame.time.get_ticks() - self.subAttackTimer
+            if subTimer > 150:
+                Projectile.targetedProjectileAttack(1, 600, 100, (self.rect.centerx, self.rect.centery), False, playerAngle, 4, 0, 'feather')
+                self.subAttackTimer = pygame.time.get_ticks()
+         
         if self.rect.x > 3000:
             self.rect.x = -1000
             self.rect.y = random.randint(ARENA_TOP+50, ARENA_BOTTOM-50)
             #Projectile.circularProjectileAttack(5, 400, 20, self.rect, True, playerAngle, 4)
             self.lastAttackTime = pygame.time.get_ticks()
             self.alreadyAttacked = False
+    
+    def battleStage4(self, dt):
+        positionVector = pygame.math.Vector2(self.rect.x, self.rect.y)
+        target = None 
+
+        if self.arenaPosition == 1:
+           target = pygame.math.Vector2((ARENA_LEFT + ARENA_RIGHT) / 2, ARENA_TOP)
+        elif self.arenaPosition == 2:
+            target = pygame.math.Vector2((ARENA_LEFT + ARENA_RIGHT) / 2, ARENA_BOTTOM-200)
+        elif self.arenaPosition == 3:
+            target = pygame.math.Vector2(ARENA_LEFT, (ARENA_TOP + ARENA_BOTTOM-200) / 2)
+        elif self.arenaPosition == 4:
+            target = pygame.math.Vector2(ARENA_RIGHT, (ARENA_TOP + ARENA_BOTTOM-200) / 2)
+        
+        positionVector.move_towards_ip(target, 1200*dt)
+        self.rect.x = positionVector.x
+        self.rect.y = positionVector.y
+
+        if positionVector.x == target.x and positionVector.y == target.y:
+            self.battleStage = 0
+            self.arenaPosition += 1
+            if self.arenaPosition > 4: self.arenaPosition = 1
 
 
 
@@ -390,7 +438,7 @@ class Player(GameObject):
 
     def __init__(self):
         super().__init__()
-        self.rect = pygame.Rect(0, 0, 70, 70)
+        self.rect = pygame.Rect(0, 0, 50, 50)
         self.xVel = 0
         self.yVel = 0
 
@@ -545,7 +593,6 @@ class BossHealthBar(GameObject):
     
     def draw(self, surface):
         barWidth = 723.25 * (self.hp / self.maxHp)
-        print(barWidth)
         pygame.draw.rect(surface, (219, 165, 135), pygame.Rect(908, 107, barWidth, 77))
         surface.blit(BossHealthBar.boss_bar, (900, 100))
         surface.blit(BossHealthBar.text_boss, (900, 5))
